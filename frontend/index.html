@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgroMonitor — TecNM</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.xlsm"
+  style="position:absolute;left:-9999px;opacity:0;pointer-events:none;">
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">AgroMonitor TecNM</div>
+    <div class="login-sub">Sistema de monitoreo agrícola</div>
+    <label style="font-size:12px;color:#5a6b5b;margin-bottom:6px;display:block;">¿Cuál es tu nombre?</label>
+    <input class="login-input" id="login-input" type="text" placeholder="Ej. Ing. García López" autofocus>
+    <button class="login-btn" onclick="doLogin()">Ingresar al sistema</button>
+  </div>
+</div>
+
+<!-- ══ APP PRINCIPAL ══ -->
+<div id="main-app" class="app-layout" style="display:none;">
+
+  <div id="sidebar">
+    <div class="sidebar-head">
+      <div class="logo">AgroMonitor</div>
+      <div class="sub">TecNM — Invernadero</div>
+    </div>
+    <div class="user-bar">
+      <div class="user-avatar" id="user-avatar">--</div>
+      <div class="user-name"   id="user-name">Usuario</div>
+    </div>
+    <nav>
+      <div class="nav-item active" data-page="dashboard" onclick="goTo('dashboard',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-page="carga" onclick="goTo('carga',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 5l3-3 3 3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+        <span>Cargar archivo</span>
+      </div>
+      <div class="nav-item" data-page="historico" onclick="goTo('historico',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        <span>Histórico</span>
+      </div>
+      <div class="nav-item" data-page="asistente" onclick="goTo('asistente',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10a2 2 0 012 2v4a2 2 0 01-2 2H6l-4 2V6a2 2 0 012-2z"/></svg>
+        <span>Asistente</span>
+      </div>
+      <div class="nav-item" data-page="diagnosticos" onclick="goTo('diagnosticos',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+        <span>Diagnósticos</span>
+      </div>
+      <div class="nav-item" data-page="area" onclick="goTo('area',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 7h12M7 2v12"/></svg>
+        <span>Área de estudio</span>
+      </div>
+    </nav>
+  </div>
+
+  <div id="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-area" id="topbar-area">Invernadero TecNM · Aguacate</div>
+      </div>
+      <button class="btn btn-primary" id="topbar-action" onclick="exportarCSV()">Exportar CSV</button>
+    </div>
+
+    <!-- ══ DASHBOARD RF4 ══ -->
+    <div id="page-dashboard" class="page-content page active">
+      <div class="stat-grid">
+        <div class="stat-card" id="stat-humedad">
+          <div class="stat-label">Humedad</div>
+          <div class="stat-val">—</div>
+          <div class="stat-sub"><span>Máx —</span><span>Mín —</span></div>
+        </div>
+        <div class="stat-card" id="stat-temp">
+          <div class="stat-label">Temperatura</div>
+          <div class="stat-val">—</div>
+          <div class="stat-sub"><span>Máx —</span><span>Mín —</span></div>
+        </div>
+        <div class="stat-card" id="stat-ph">
+          <div class="stat-label">pH</div>
+          <div class="stat-val">—</div>
+          <div class="stat-sub"><span>Máx —</span><span>Mín —</span></div>
+        </div>
+        <div class="stat-card" id="stat-ce">
+          <div class="stat-label">Conductividad</div>
+          <div class="stat-val">—</div>
+          <div class="stat-sub"><span>µS/cm</span><span>—</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Evolución de variables</div>
+        <div class="var-pills" id="dash-pills"></div>
+        <div class="chart-wrap"><canvas id="dashChart"></canvas></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Nutrientes (ppm)</div>
+          <div class="chart-wrap" style="height:160px;"><canvas id="nutChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Último diagnóstico</div>
+          <div style="font-size:13px;color:#5a6b5b;margin-bottom:10px;" id="dash-ultimo-diag">—</div>
+          <div id="dash-ultimo-badge"></div>
+          <!-- FIX: id en lugar de onclick con comillas anidadas -->
+          <button class="btn" id="btn-nuevo-diag-dash" style="margin-top:14px;font-size:12px;">
+            Nuevo diagnóstico
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CARGA ARCHIVO RF2 ══ -->
+    <div id="page-carga" class="page-content page" style="display:none;">
+      <div class="drop-zone" id="dropzone">
+        <div class="drop-icon">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8"><path d="M8 2v8M5 5l3-3 3 3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+        </div>
+        <div class="drop-title">Arrastra tu archivo aquí</div>
+        <div class="drop-sub">CSV o Excel del sensor (.xlsx) · máx. 10 MB</div>
+      </div>
+
+      <div id="upload-progress" style="display:none;" class="card">
+        <div class="progress-row">
+          <span id="upload-filename" style="font-weight:600;color:#051F20;">archivo</span>
+          <div class="progress-bar-wrap"><div class="progress-bar" id="pbar"></div></div>
+          <span id="upload-pct" style="min-width:36px;text-align:right;font-size:12px;">0%</span>
+        </div>
+        <div id="upload-status" style="font-size:12px;margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Formatos aceptados</div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:15px;">📊</span>
+            <span style="font-size:13px;font-weight:600;color:#051F20;">Excel del sensor (.xlsx)</span>
+            <span class="badge badge-ok">Recomendado</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:24px;">
+            <span class="badge badge-ok">time</span>
+            <span class="badge badge-ok">temp(℃)</span>
+            <span class="badge badge-ok">hum(%)</span>
+            <span class="badge badge-ok">conductivity(us/cm)</span>
+            <span class="badge badge-ok">ph</span>
+            <span class="badge badge-ok">n(mg/kg)</span>
+            <span class="badge badge-ok">p(mg/kg)</span>
+            <span class="badge badge-ok">k(mg/kg)</span>
+          </div>
+        </div>
+        <div style="height:0.5px;background:#d4e4d6;margin-bottom:12px;"></div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:15px;">📄</span>
+            <span style="font-size:13px;font-weight:600;color:#051F20;">CSV manual (.csv)</span>
+            <span class="badge" style="background:#f0f5f1;color:#5a6b5b;border:0.5px solid #d4e4d6;">Alternativo</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:24px;">
+            <span class="badge badge-ok">fecha_hora</span>
+            <span class="badge badge-ok">humedad</span>
+            <span class="badge badge-ok">temperatura</span>
+            <span class="badge badge-ok">pH</span>
+            <span class="badge badge-ok">conductividad</span>
+            <span class="badge badge-ok">salinidad</span>
+            <span class="badge badge-ok">nitrogeno</span>
+            <span class="badge badge-ok">fosforo</span>
+            <span class="badge badge-ok">potasio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Historial de cargas</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Archivo</th><th>Fecha</th><th>Filas</th><th>Usuario</th><th>Estado</th></tr></thead>
+            <tbody id="hist-cargas">
+              <tr><td colspan="5" style="text-align:center;color:#5a6b5b;padding:12px;">Sin cargas registradas aún.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTÓRICO RF5 ══ -->
+    <div id="page-historico" class="page-content page" style="display:none;">
+      <div class="card">
+        <div class="card-title">Reporte PDF del período</div>
+        <div class="filters" style="margin-bottom:12px;">
+          <label>Desde</label><input type="date" id="f-desde">
+          <label>Hasta</label><input type="date" id="f-hasta">
+          <select id="f-var" onchange="updateHistChart()">
+            <option value="0">Humedad (%)</option>
+            <option value="1">Temperatura (°C)</option>
+            <option value="2">pH</option>
+            <option value="3">Conductividad</option>
+            <option value="4">Nitrógeno (ppm)</option>
+            <option value="5">Fósforo (ppm)</option>
+            <option value="6">Potasio (ppm)</option>
+          </select>
+          <button class="btn btn-primary" onclick="cargarHistorico()">Filtrar</button>
+        </div>
+
+        <!-- CAMPO DE OBSERVACIONES para el PDF -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:#5a6b5b;
+                        display:block;margin-bottom:6px;">
+            Observaciones para el reporte (opcional)
+          </label>
+          <textarea id="obs-reporte" rows="3"
+            placeholder="Ej. Se detectó aumento de pH en la segunda semana. Se recomienda revisar el sistema de riego..."
+            style="width:100%;padding:9px 11px;border:0.5px solid #d4e4d6;
+                   border-radius:8px;font-size:13px;color:#051F20;background:#fff;
+                   resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+        </div>
+
+        <button class="btn" id="btn-reporte-pdf"
+          style="background:#051F20;color:#DBF0DD;border-color:#051F20;"
+          onclick="generarReportePDF()">
+          Generar reporte PDF
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="chart-wrap" style="height:220px;"><canvas id="histChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Datos del período</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Fecha/hora</th><th>Hum%</th><th>Temp°C</th><th>pH</th>
+                  <th>CE µS</th><th>Sal</th><th>N</th><th>P</th><th>K</th></tr>
+            </thead>
+            <tbody id="hist-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ASISTENTE RF6/RF7/RF11 ══ -->
+    <div id="page-asistente" class="page-content page" style="display:none;">
+      <div class="card" style="max-width:580px;">
+        <div class="card-title">Selecciona el cultivo a evaluar</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;">
+          <button class="btn btn-primary" id="cult-agc" onclick="selectCultivo('Aguacate')">Aguacate</button>
+          <button class="btn"             id="cult-pit" onclick="selectCultivo('Pitahaya')">Pitahaya</button>
+        </div>
+        <div class="step-indicator" id="steps"></div>
+        <div id="question-container"></div>
+        <div id="resultado-asistente" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ══ DIAGNÓSTICOS RF12 ══ -->
+    <div id="page-diagnosticos" class="page-content page" style="display:none;">
+      <div class="card">
+        <div class="card-title">Diagnósticos registrados</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Cultivo</th><th>Resultado</th><th></th></tr></thead>
+            <tbody id="diag-tbody">
+              <tr><td colspan="5" style="text-align:center;color:#5a6b5b;padding:16px;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ÁREA DE ESTUDIO RF1 ══ -->
+    <div id="page-area" class="page-content page" style="display:none;">
+      <div class="card" style="max-width:620px;">
+        <div class="card-title">Datos del área de estudio</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre del área</label><input type="text" id="area-nombre" value="Invernadero TecNM"></div>
+          <div class="form-group"><label>Tipo de cultivo</label>
+            <select id="area-cultivo"><option>Aguacate</option><option>Pitahaya</option></select>
+          </div>
+          <div class="form-group"><label>Dimensiones (m²)</label><input type="number" id="area-m2" value="250"></div>
+          <div class="form-group"><label>Inicio de monitoreo</label><input type="date" id="area-fecha" value="2024-09-01"></div>
+          <div class="form-group full-col"><label>Descripción</label>
+            <input type="text" id="area-desc" value="Área experimental para cultivo de aguacate Hass bajo condiciones controladas.">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button class="btn btn-primary" onclick="guardarArea()">Guardar cambios</button>
+          <button class="btn" onclick="cargarDatosArea()">Cancelar</button>
+        </div>
+        <div id="area-msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/historico.js"></script>
+<script src="js/asistente.js"></script>
+<script src="js/carga.js"></script>
+<script src="js/diagnosticos.js"></script>
+</body>
+</html>

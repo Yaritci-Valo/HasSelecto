@@ -1,14 +1,10 @@
-# ============================================================
-#  app.py — Punto de entrada del backend Flask
-#  AgroMonitor TecNM
-# ============================================================
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from flask_cors import CORS
+
 from routes.api import api
 from config.db import test_connection
+
 
 def create_app():
     app = Flask(__name__)
@@ -23,13 +19,19 @@ def create_app():
     # ── Ruta de verificación ─────────────────────────────────
     @app.route('/health')
     def health():
-        return {"status": "ok", "app": "AgroMonitor TecNM"}, 200
+        return {
+            "status": "ok",
+            "app": "AgroMonitor TecNM"
+        }, 200
 
     return app
 
 
+# ESTA LÍNEA ES LA IMPORTANTE PARA RENDER/GUNICORN
+app = create_app()
+
+
 if __name__ == '__main__':
-    app = create_app()
 
     print("=" * 50)
     print("  AgroMonitor TecNM — Backend Flask")
@@ -49,5 +51,5 @@ if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
         port=5000,
-        debug=True       # Cambiar a False en producción
+        debug=True  # Cambiar a False en producción
     )
